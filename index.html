@@ -67,7 +67,6 @@
   .t-view{display:none;}
   .t-view.active{display:block;}
 
-  /* ---- ESCANER ---- */
   .scan-stage{
     background:var(--chalk-green-dark);
     border-radius:var(--radius);
@@ -139,7 +138,6 @@
   .stamp-type{font-size:22px;letter-spacing:2px;text-transform:uppercase;}
   .stamp-time{font-size:13px;color:rgba(245,241,230,0.7);margin-top:6px;}
 
-  /* ---- DOCENTES ---- */
   .card{background:var(--chalk-white);border:1px solid var(--paper-line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;}
   .card h3{font-family:'Space Grotesk',sans-serif;font-size:15px;margin:0 0 12px 0;}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
@@ -164,7 +162,6 @@
   .doc-item .turno{font-size:11px;color:var(--ink-soft);margin-bottom:6px;}
   .doc-item .del{font-size:11px;color:var(--stamp-red);background:none;border:none;cursor:pointer;margin-top:4px;}
 
-  /* ---- REGISTRO ---- */
   table{width:100%;border-collapse:collapse;font-size:12.5px;}
   th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--paper-line);}
   th{font-family:'Space Grotesk',sans-serif;color:var(--ink-soft);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:0.4px;}
@@ -212,7 +209,6 @@
 
   <div class="t-body">
 
-    <!-- ESCANEAR -->
     <div class="t-view active" id="view-scan">
       <div class="scan-stage">
         <div class="scan-clock" id="scan-clock">--:--:--</div>
@@ -239,7 +235,6 @@
       </div>
     </div>
 
-    <!-- DOCENTES -->
     <div class="t-view" id="view-docentes">
       <div class="card">
         <h3>Agregar un docente</h3>
@@ -270,7 +265,6 @@
       </div>
     </div>
 
-    <!-- REGISTRO -->
     <div class="t-view" id="view-registro">
       <div class="card">
         <div class="filters">
@@ -284,15 +278,14 @@
         </div>
         <div id="registro-table"></div>
         <p style="font-size:12px;color:var(--ink-soft);margin-top:12px;">
-          Para descargar o exportar los datos, hazlo directo desde tu Google Sheet (Archivo → Descargar), así siempre tienes la versión más actual y editable.
+          Para descargar o exportar los datos, hazlo directo desde tu Google Sheet.
         </p>
       </div>
     </div>
 
-    <!-- AJUSTES -->
     <div class="t-view" id="view-ajustes">
       <div class="card">
-        <h3>Hora límite de entrada (para marcar tardanzas)</h3>
+        <h3>Hora límite de entrada</h3>
         <div class="row">
           <label style="font-size:12.5px;">Turno Mañana <input type="time" id="limite-manana"></label>
           <label style="font-size:12.5px;">Turno Tarde <input type="time" id="limite-tarde"></label>
@@ -301,28 +294,19 @@
       <div class="card">
         <h3>Conexión a Google Sheet</h3>
         <div class="row">
-          <input type="text" id="input-sheet-url" placeholder="https://script.google.com/macros/s/AKfycbzFBrgC3sEALgimyjU-_hvthgMj7Gey8VU2fOJ74hLdyjfNkrxeRjhIN82C7gm-Wi9ULA/exec" style="flex:1;min-width:260px;">
+          <input type="text" id="input-sheet-url" placeholder="URL del Apps Script" style="flex:1;min-width:260px;">
           <button class="btn" id="btn-save-ajustes">Guardar</button>
           <button class="btn ghost" id="btn-sync-now">Sincronizar ahora</button>
         </div>
-        <div id="sheet-status" class="sync-status info">Sin conectar — los registros solo se guardan localmente</div>
-        <p style="font-size:12px;color:var(--ink-soft);margin-top:8px;">
-          <strong>Importante:</strong> Pega aquí la URL de tu Apps Script (termina en <code>/exec</code>). 
-          Esta URL debe ser la <strong>misma</strong> en todos los dispositivos para compartir los datos.
-        </p>
+        <div id="sheet-status" class="sync-status info">Sin conectar</div>
+        
         <div style="margin-top:12px;padding:12px;background:#f5f0e6;border-radius:8px;font-size:12px;color:var(--ink-soft);">
-          <strong>⚠️ Solución CORS:</strong> Después de guardar la URL, 
-          <strong>abre la URL del Sheet en una pestaña nueva</strong> y autoriza el acceso.
-          Luego vuelve aquí y haz clic en "Sincronizar ahora".
-        </div>
-      </div>
-      <div class="card">
-        <h3>Información de sincronización</h3>
-        <div style="font-size:13px;color:var(--ink-soft);">
-          <p>📱 <strong>Datos locales:</strong> Se guardan en el navegador de cada dispositivo como respaldo.</p>
-          <p>☁️ <strong>Google Sheet:</strong> Es la fuente de verdad compartida entre todos los dispositivos.</p>
-          <p>🔄 <strong>Sincronización:</strong> Automática al escanear y al abrir la página.</p>
-          <p>⚠️ <strong>Sin conexión:</strong> Funciona con datos locales, se sincroniza al reconectar.</p>
+          <strong>📌 IMPORTANTE para evitar CORS:</strong>
+          <ol style="margin:6px 0 0 16px;padding:0;">
+            <li>Activa el proxy en: <a href="https://cors-anywhere.herokuapp.com/" target="_blank">https://cors-anywhere.herokuapp.com/</a></li>
+            <li>Usa esta URL con el proxy: <code>https://cors-anywhere.herokuapp.com/TU_URL</code></li>
+            <li>O usa: <code>https://api.allorigins.win/raw?url=https://script.google.com/macros/s/AKfycbzFBrgC3sEALgimyjU-_hvthgMj7Gey8VU2fOJ74hLdyjfNkrxeRjhIN82C7gm-Wi9ULA/exec</code></li>
+          </ol>
         </div>
       </div>
     </div>
@@ -330,9 +314,6 @@
   </div>
   <div id="print-area"></div>
 </div>
-
-<!-- IFrame oculto para evitar CORS -->
-<iframe id="proxy-frame" style="display:none;"></iframe>
 
 <script>
 (function(){
@@ -347,119 +328,45 @@
   let stream = null;
   let scanning = false;
 
-  // ---------- FUNCIONES DE ALMACENAMIENTO ----------
   function saveDocentes(){
-    try{ localStorage.setItem('tarjetero_docentes', JSON.stringify(docentes)); } catch(e){ console.error(e); }
+    try{ localStorage.setItem('tarjetero_docentes', JSON.stringify(docentes)); } catch(e){}
   }
-  
   function saveRegistros(){
-    try{ localStorage.setItem('tarjetero_registros', JSON.stringify(registros)); } catch(e){ console.error(e); }
+    try{ localStorage.setItem('tarjetero_registros', JSON.stringify(registros)); } catch(e){}
   }
-  
   function saveAjustes(){
-    try{ localStorage.setItem('tarjetero_ajustes', JSON.stringify(ajustes)); } catch(e){ console.error(e); }
+    try{ localStorage.setItem('tarjetero_ajustes', JSON.stringify(ajustes)); } catch(e){}
   }
 
-  // ---------- PROXY PARA EVITAR CORS ----------
-  function callSheetAPI(method, data = null) {
-    return new Promise((resolve, reject) => {
-      const url = ajustes.sheetUrl;
-      if (!url) {
-        reject(new Error('No hay URL del Sheet configurada'));
-        return;
-      }
-
-      // Usar fetch con modo no-cors para POST
-      if (method === 'POST') {
-        fetch(url, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data)
-        })
-        .then(() => {
-          // Con no-cors no podemos leer la respuesta, pero el envío funcionó
-          resolve({ status: 'ok', message: 'Enviado correctamente' });
-        })
-        .catch(reject);
-        return;
-      }
-
-      // Para GET, usar un iframe o ventana emergente como fallback
-      // Primero intentamos con fetch normal
-      fetch(url + '?t=' + Date.now(), {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('HTTP ' + response.status);
-        }
-        return response.json();
-      })
-      .then(resolve)
-      .catch(async (error) => {
-        console.warn('Fetch directo falló, usando método alternativo:', error);
-        
-        // Método alternativo: abrir en nueva ventana y capturar datos
-        try {
-          const win = window.open(url + '?t=' + Date.now(), '_blank');
-          if (!win) {
-            throw new Error('No se pudo abrir la ventana. Permite popups.');
-          }
-          
-          // Esperar a que la ventana cargue
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          // Intentar obtener datos del contenido
-          try {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = url + '?t=' + Date.now();
-            document.body.appendChild(iframe);
-            
-            await new Promise(resolve => {
-              iframe.onload = () => {
-                try {
-                  const content = iframe.contentDocument || iframe.contentWindow.document;
-                  const bodyText = content.body ? content.body.textContent : '';
-                  if (bodyText) {
-                    const data = JSON.parse(bodyText);
-                    document.body.removeChild(iframe);
-                    resolve(data);
-                  } else {
-                    document.body.removeChild(iframe);
-                    reject(new Error('No se pudo leer el contenido'));
-                  }
-                } catch(e) {
-                  document.body.removeChild(iframe);
-                  reject(e);
-                }
-              };
-              setTimeout(() => {
-                document.body.removeChild(iframe);
-                reject(new Error('Timeout esperando el iframe'));
-              }, 5000);
-            });
-          } catch(e) {
-            reject(e);
-          }
-        } catch(e) {
-          reject(e);
-        }
+  // ---------- FUNCIÓN PARA LLAMAR AL SHEET CON PROXY ----------
+  async function callSheetAPI(method, data = null) {
+    let url = ajustes.sheetUrl;
+    if (!url) throw new Error('No hay URL configurada');
+    
+    // Si la URL no tiene proxy, agregar CORS-Anywhere
+    if (!url.includes('cors-anywhere') && !url.includes('allorigins')) {
+      // Usar allorigins como proxy (más estable que cors-anywhere)
+      url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    }
+    
+    if (method === 'GET') {
+      const response = await fetch(url + '?t=' + Date.now());
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return await response.json();
+    } else {
+      // POST - enviar datos
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
       });
-    });
+      return await response.json();
+    }
   }
 
-  // ---------- SINCRONIZACIÓN CON SHEET ----------
   async function syncWithSheet() {
     if(!ajustes.sheetUrl) {
-      updateSheetStatus('info', 'Sin conectar — los registros solo se guardan localmente');
+      updateSheetStatus('info', 'Sin conectar');
       return;
     }
     
@@ -469,7 +376,6 @@
       const data = await callSheetAPI('GET');
       
       if(data.status === 'ok') {
-        // Actualizar docentes
         if(data.docentes && data.docentes.length > 0) {
           docentes = data.docentes.map(d => ({
             id: d.dni || d.id,
@@ -481,7 +387,6 @@
           renderDocentes();
         }
         
-        // Actualizar registros
         if(data.registros && data.registros.length > 0) {
           registros = data.registros.map(r => ({
             ...r,
@@ -491,14 +396,13 @@
           renderRegistro();
         }
         
-        updateSheetStatus('success', '✓ Sincronizado correctamente con Google Sheet');
-        console.log('Sincronización exitosa:', { docentes: docentes.length, registros: registros.length });
+        updateSheetStatus('success', '✓ Sincronizado correctamente');
       } else {
-        updateSheetStatus('error', '⚠ Error del servidor: ' + (data.message || 'desconocido'));
+        updateSheetStatus('error', '⚠ Error: ' + (data.message || 'desconocido'));
       }
     } catch(err) {
-      console.error('Error de sincronización:', err);
-      updateSheetStatus('error', '⚠ No se pudo conectar al Sheet — usando datos locales');
+      console.error('Error:', err);
+      updateSheetStatus('error', '⚠ No se pudo conectar — usando datos locales');
     }
   }
 
@@ -509,29 +413,17 @@
     el.className = 'sync-status ' + type;
   }
 
-  // ---------- ENVÍO AL SHEET ----------
   async function sendToSheet(record, kind) {
-    if(!ajustes.sheetUrl) {
-      console.log('Sin URL del Sheet, guardando solo localmente');
-      return;
-    }
-    
+    if(!ajustes.sheetUrl) return;
     try {
       await callSheetAPI('POST', Object.assign({ kind }, record));
-      console.log('Datos enviados al Sheet:', kind, record);
-      
-      // Esperar un momento y sincronizar para obtener los datos actualizados
       setTimeout(syncWithSheet, 1500);
-      
     } catch(err) {
-      console.error('Error al enviar al Sheet:', err);
-      // Los datos ya están guardados localmente
+      console.error('Error al enviar:', err);
     }
   }
 
-  // ---------- CARGA INICIAL ----------
   async function loadAll(){
-    // Cargar datos locales
     try {
       const d = localStorage.getItem('tarjetero_docentes');
       docentes = d ? JSON.parse(d) : [];
@@ -547,24 +439,17 @@
       if(a) ajustes = JSON.parse(a);
     } catch(e) {}
     
-    // Cargar ajustes en UI
-    const limManana = $('#limite-manana');
-    const limTarde = $('#limite-tarde');
-    const sheetUrl = $('#input-sheet-url');
+    $('#limite-manana').value = ajustes.limiteManana || '08:00';
+    $('#limite-tarde').value = ajustes.limiteTarde || '14:00';
+    $('#input-sheet-url').value = ajustes.sheetUrl || '';
     
-    if(limManana) limManana.value = ajustes.limiteManana || '08:00';
-    if(limTarde) limTarde.value = ajustes.limiteTarde || '14:00';
-    if(sheetUrl) sheetUrl.value = ajustes.sheetUrl || '';
-    
-    // Renderizar UI
     renderDocentes();
     renderRegistro();
     
-    // Sincronizar si hay URL configurada
     if(ajustes.sheetUrl) {
       await syncWithSheet();
     } else {
-      updateSheetStatus('info', 'Sin conectar — los registros solo se guardan localmente');
+      updateSheetStatus('info', 'Sin conectar — solo local');
     }
   }
 
@@ -574,8 +459,7 @@
       $$('.t-tab').forEach(t=>t.classList.remove('active'));
       $$('.t-view').forEach(v=>v.classList.remove('active'));
       tab.classList.add('active');
-      const view = $('#view-'+tab.dataset.tab);
-      if(view) view.classList.add('active');
+      $('#view-'+tab.dataset.tab).classList.add('active');
       if(tab.dataset.tab === 'docentes') renderDocentes();
       if(tab.dataset.tab === 'registro') renderRegistro();
     });
@@ -587,31 +471,19 @@
     const clock = $('#scan-clock');
     if(clock) {
       clock.textContent = now.toLocaleString('es-PE', {
-        weekday:'short', 
-        day:'2-digit', 
-        month:'short', 
-        hour:'2-digit', 
-        minute:'2-digit', 
-        second:'2-digit'
+        weekday:'short', day:'2-digit', month:'short', 
+        hour:'2-digit', minute:'2-digit', second:'2-digit'
       });
     }
   }
-  setInterval(tickClock, 1000); 
-  tickClock();
+  setInterval(tickClock, 1000); tickClock();
 
   // ---------- DOCENTES ----------
   function addDocente(nombre, dni, turno){
     nombre = (nombre || '').trim();
     dni = (dni || '').trim();
-    if(!nombre || !dni) {
-      alert('Por favor completa todos los campos');
-      return false;
-    }
-    
-    if(docentes.some(d => d.id === dni)){
-      alert('Ya existe un docente con el DNI ' + dni);
-      return false;
-    }
+    if(!nombre || !dni) { alert('Completa todos los campos'); return false; }
+    if(docentes.some(d => d.id === dni)) { alert('DNI ya registrado'); return false; }
     
     const doc = { id: dni, nombre, dni, turno };
     docentes.push(doc);
@@ -621,60 +493,39 @@
     return true;
   }
 
-  const btnAdd = $('#btn-add-docente');
-  if(btnAdd) {
-    btnAdd.addEventListener('click', ()=>{
-      const nombre = $('#input-nombre');
-      const dni = $('#input-dni');
-      const turno = $('#input-turno');
-      
-      const ok = addDocente(nombre ? nombre.value : '', dni ? dni.value : '', turno ? turno.value : 'Mañana');
-      if(ok){
-        if(nombre) nombre.value = '';
-        if(dni) dni.value = '';
-      }
-    });
-  }
+  $('#btn-add-docente').addEventListener('click', ()=>{
+    const nombre = $('#input-nombre');
+    const dni = $('#input-dni');
+    const turno = $('#input-turno');
+    const ok = addDocente(nombre.value, dni.value, turno.value);
+    if(ok){ nombre.value = ''; dni.value = ''; }
+  });
 
-  const btnBulk = $('#btn-bulk-add');
-  if(btnBulk) {
-    btnBulk.addEventListener('click', ()=>{
-      const bulk = $('#input-bulk');
-      if(!bulk) return;
-      
-      const lines = bulk.value.split('\n').map(l=>l.trim()).filter(Boolean);
-      let added = 0;
-      
-      lines.forEach(line=>{
-        const parts = line.split(',').map(p => p.trim());
-        const nombre = parts[0] || '';
-        const dni = parts[1] || '';
-        let turno = parts[2] || 'Mañana';
-        if(!['Mañana','Tarde','Ambos'].includes(turno)) turno = 'Mañana';
-        
-        if(nombre && dni) {
-          if(addDocente(nombre, dni, turno)) added++;
-        }
-      });
-      
-      bulk.value = '';
-      alert('Se agregaron ' + added + ' docentes correctamente.');
+  $('#btn-bulk-add').addEventListener('click', ()=>{
+    const lines = $('#input-bulk').value.split('\n').map(l=>l.trim()).filter(Boolean);
+    let added = 0;
+    lines.forEach(line=>{
+      const parts = line.split(',').map(p => p.trim());
+      const nombre = parts[0] || '';
+      const dni = parts[1] || '';
+      let turno = parts[2] || 'Mañana';
+      if(!['Mañana','Tarde','Ambos'].includes(turno)) turno = 'Mañana';
+      if(nombre && dni && addDocente(nombre, dni, turno)) added++;
     });
-  }
+    $('#input-bulk').value = '';
+    alert('Agregados ' + added + ' docentes.');
+  });
 
   function renderDocentes(){
     const grid = $('#doc-grid');
-    const count = $('#doc-count');
     if(!grid) return;
-    
     grid.innerHTML = '';
-    if(count) count.textContent = docentes.length;
+    $('#doc-count').textContent = docentes.length;
     
     docentes.forEach(doc=>{
       const item = document.createElement('div');
       item.className = 'doc-item';
       const qrBoxId = 'qr-' + doc.id.replace(/[^a-zA-Z0-9]/g, '');
-      
       item.innerHTML = `
         <div class="qr-box" id="${qrBoxId}"></div>
         <div class="name">${escapeHtml(doc.nombre)}</div>
@@ -683,23 +534,18 @@
       `;
       grid.appendChild(item);
       
-      // Generar QR
       try {
         new QRCode(document.getElementById(qrBoxId), { 
           text: 'TARJETERO:' + doc.id, 
-          width: 96, 
-          height: 96, 
+          width: 96, height: 96, 
           correctLevel: QRCode.CorrectLevel.M 
         });
-      } catch(e) {
-        console.error('Error generando QR:', e);
-      }
+      } catch(e) {}
     });
     
-    // Eventos de eliminación
     $$('.del').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        if(confirm('¿Eliminar este docente?')) {
+        if(confirm('¿Eliminar?')) {
           docentes = docentes.filter(d=>d.id !== btn.dataset.id);
           saveDocentes();
           renderDocentes();
@@ -708,86 +554,56 @@
     });
   }
 
-  function escapeHtml(s){ 
-    const d=document.createElement('div'); 
-    d.textContent=s; 
-    return d.innerHTML; 
-  }
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
   // ---------- PRINT ----------
-  const btnPrint = $('#btn-print');
-  if(btnPrint) {
-    btnPrint.addEventListener('click', ()=>{
-      const area = document.getElementById('print-area');
-      if(!area) return;
-      
-      area.innerHTML = '';
-      docentes.forEach(doc=>{
-        const badge = document.createElement('div');
-        badge.className = 'badge';
-        const boxId = 'print-qr-' + doc.id.replace(/[^a-zA-Z0-9]/g, '');
-        badge.innerHTML = `<div id="${boxId}"></div><div class="name">${escapeHtml(doc.nombre)}</div><div style="font-size:11px;color:#666;">${doc.turno}</div>`;
-        area.appendChild(badge);
-        
-        try {
-          new QRCode(document.getElementById(boxId), { 
-            text: 'TARJETERO:' + doc.id, 
-            width: 110, 
-            height: 110, 
-            correctLevel: QRCode.CorrectLevel.M 
-          });
-        } catch(e) {
-          console.error('Error generando QR para impresión:', e);
-        }
-      });
-      setTimeout(()=> window.print(), 300);
+  $('#btn-print').addEventListener('click', ()=>{
+    const area = document.getElementById('print-area');
+    if(!area) return;
+    area.innerHTML = '';
+    docentes.forEach(doc=>{
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      const boxId = 'print-qr-' + doc.id.replace(/[^a-zA-Z0-9]/g, '');
+      badge.innerHTML = `<div id="${boxId}"></div><div class="name">${escapeHtml(doc.nombre)}</div><div style="font-size:11px;color:#666;">${doc.turno}</div>`;
+      area.appendChild(badge);
+      try {
+        new QRCode(document.getElementById(boxId), { 
+          text: 'TARJETERO:' + doc.id, 
+          width: 110, height: 110, 
+          correctLevel: QRCode.CorrectLevel.M 
+        });
+      } catch(e) {}
     });
-  }
+    setTimeout(()=> window.print(), 300);
+  });
 
   // ---------- SCANNER ----------
   const video = document.getElementById('scan-video');
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-  const btnCamera = $('#btn-start-camera');
-  if(btnCamera) {
-    btnCamera.addEventListener('click', startCamera);
-  }
-
-  const btnDni = $('#btn-marcar-dni');
-  if(btnDni) {
-    btnDni.addEventListener('click', ()=>{
-      const input = $('#input-dni-manual');
-      if(!input) return;
-      const dni = input.value.trim();
-      if(!dni) {
-        alert('Ingresa un número de DNI');
-        return;
-      }
-      handleScan(dni);
-      input.value = '';
-    });
-  }
+  $('#btn-start-camera').addEventListener('click', startCamera);
+  $('#btn-marcar-dni').addEventListener('click', ()=>{
+    const input = $('#input-dni-manual');
+    if(!input) return;
+    const dni = input.value.trim();
+    if(!dni) { alert('Ingresa un DNI'); return; }
+    handleScan(dni);
+    input.value = '';
+  });
 
   async function startCamera(){
     try{
-      stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      if(video) {
-        video.srcObject = stream;
-        await video.play();
-        scanning = true;
-        const btn = $('#btn-start-camera');
-        if(btn) btn.style.display = 'none';
-        const hint = $('#scan-hint');
-        if(hint) hint.textContent = 'Acerca tu carnet QR a la cámara';
-        requestAnimationFrame(scanLoop);
-      }
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      video.srcObject = stream;
+      await video.play();
+      scanning = true;
+      $('#btn-start-camera').style.display = 'none';
+      $('#scan-hint').textContent = 'Acerca tu carnet QR';
+      requestAnimationFrame(scanLoop);
     } catch(e){
-      const hint = $('#scan-hint');
-      if(hint) hint.textContent = 'No se pudo activar la cámara. Revisa los permisos del navegador.';
-      console.error('Error de cámara:', e);
+      $('#scan-hint').textContent = 'No se pudo activar la cámara.';
     }
   }
 
@@ -803,9 +619,7 @@
         if(code && code.data && code.data.startsWith('TARJETERO:')){
           handleScan(code.data.replace('TARJETERO:',''));
         }
-      } catch(e) {
-        // Error silencioso de jsQR
-      }
+      } catch(e) {}
     }
     requestAnimationFrame(scanLoop);
   }
@@ -846,9 +660,7 @@
     const record = {
       docenteId: docId,
       nombre: doc.nombre,
-      tipo, 
-      turno: turnoHoy, 
-      tarde,
+      tipo, turno: turnoHoy, tarde,
       fecha: today,
       hora: formatTime(nowDate),
       ts: nowDate.getTime()
@@ -869,48 +681,36 @@
   function showStamp(kind, name, type, time){
     const overlay = $('#stamp-overlay');
     const card = $('#stamp-card');
-    const nameEl = $('#stamp-name');
-    const typeEl = $('#stamp-type');
-    const timeEl = $('#stamp-time');
-    
-    if(!overlay || !card || !nameEl || !typeEl || !timeEl) return;
-    
+    if(!overlay || !card) return;
     card.className = 'stamp-card ' + kind;
-    nameEl.textContent = name;
-    typeEl.textContent = type;
-    timeEl.textContent = time;
+    $('#stamp-name').textContent = name;
+    $('#stamp-type').textContent = type;
+    $('#stamp-time').textContent = time;
     overlay.classList.add('show');
     setTimeout(()=> overlay.classList.remove('show'), 2200);
   }
 
   // ---------- REGISTRO ----------
-  const btnHoy = $('#btn-hoy');
-  if(btnHoy) {
-    btnHoy.addEventListener('click', ()=>{
-      const filter = $('#filter-fecha');
-      if(filter) filter.value = todayStr(new Date());
-      renderRegistro();
-    });
-  }
-
-  const filterFecha = $('#filter-fecha');
-  const filterTurno = $('#filter-turno');
-  if(filterFecha) filterFecha.addEventListener('input', renderRegistro);
-  if(filterTurno) filterTurno.addEventListener('change', renderRegistro);
+  $('#btn-hoy').addEventListener('click', ()=>{
+    $('#filter-fecha').value = todayStr(new Date());
+    renderRegistro();
+  });
+  $('#filter-fecha').addEventListener('input', renderRegistro);
+  $('#filter-turno').addEventListener('change', renderRegistro);
 
   function renderRegistro(){
     const container = $('#registro-table');
     if(!container) return;
     
-    const fecha = $('#filter-fecha') ? $('#filter-fecha').value.trim() : '';
-    const turno = $('#filter-turno') ? $('#filter-turno').value : '';
+    const fecha = $('#filter-fecha').value.trim();
+    const turno = $('#filter-turno').value;
     
     let rows = registros.slice().sort((a,b)=> (b.ts || 0) - (a.ts || 0));
     if(fecha) rows = rows.filter(r=>r.fecha === fecha);
     if(turno) rows = rows.filter(r=>r.turno === turno);
 
     if(rows.length === 0){
-      container.innerHTML = '<div class="empty">Sin registros para este filtro.</div>';
+      container.innerHTML = '<div class="empty">Sin registros.</div>';
       return;
     }
     
@@ -932,44 +732,28 @@
   }
 
   // ---------- AJUSTES ----------
-  const btnSave = $('#btn-save-ajustes');
-  if(btnSave) {
-    btnSave.addEventListener('click', async ()=>{
-      const limManana = $('#limite-manana');
-      const limTarde = $('#limite-tarde');
-      const sheetUrl = $('#input-sheet-url');
-      
-      if(limManana) ajustes.limiteManana = limManana.value || '08:00';
-      if(limTarde) ajustes.limiteTarde = limTarde.value || '14:00';
-      if(sheetUrl) ajustes.sheetUrl = sheetUrl.value.trim();
-      
-      saveAjustes();
-      
-      if(ajustes.sheetUrl) {
-        // Mostrar mensaje para autorizar
-        updateSheetStatus('info', '⚠️ Abre la URL del Sheet en una nueva pestaña para autorizar, luego sincroniza');
-        alert('Para evitar problemas de CORS:\n\n1. Abre esta URL en una nueva pestaña:\n' + ajustes.sheetUrl + '\n\n2. Autoriza el acceso si es necesario\n3. Vuelve aquí y haz clic en "Sincronizar ahora"');
-        
-        // Intentar sincronizar
-        await syncWithSheet();
-      } else {
-        updateSheetStatus('info', 'Configuración guardada — sin conexión al Sheet');
-      }
-    });
-  }
-
-  const btnSync = $('#btn-sync-now');
-  if(btnSync) {
-    btnSync.addEventListener('click', async ()=>{
-      if(!ajustes.sheetUrl) {
-        updateSheetStatus('error', '⚠ Primero configura la URL del Sheet');
-        return;
-      }
+  $('#btn-save-ajustes').addEventListener('click', async ()=>{
+    ajustes.limiteManana = $('#limite-manana').value || '08:00';
+    ajustes.limiteTarde = $('#limite-tarde').value || '14:00';
+    ajustes.sheetUrl = $('#input-sheet-url').value.trim();
+    saveAjustes();
+    
+    if(ajustes.sheetUrl) {
+      updateSheetStatus('info', 'Configuración guardada, sincronizando...');
       await syncWithSheet();
-    });
-  }
+    } else {
+      updateSheetStatus('info', 'Configuración guardada — sin conexión');
+    }
+  });
 
-  // ---------- INICIALIZAR ----------
+  $('#btn-sync-now').addEventListener('click', async ()=>{
+    if(!ajustes.sheetUrl) {
+      updateSheetStatus('error', '⚠ Primero configura la URL');
+      return;
+    }
+    await syncWithSheet();
+  });
+
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(loadAll, 100);
   });
