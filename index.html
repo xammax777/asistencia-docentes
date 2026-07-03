@@ -301,11 +301,10 @@
         <div id="sheet-status" class="sync-status info">Sin conectar</div>
         
         <div style="margin-top:12px;padding:12px;background:#f5f0e6;border-radius:8px;font-size:12px;color:var(--ink-soft);">
-          <strong>📌 IMPORTANTE para evitar CORS:</strong>
+          <strong>📌 Para evitar CORS usa el proxy:</strong>
           <ol style="margin:6px 0 0 16px;padding:0;">
-            <li>Activa el proxy en: <a href="https://cors-anywhere.herokuapp.com/" target="_blank">https://cors-anywhere.herokuapp.com/</a></li>
-            <li>Usa esta URL con el proxy: <code>https://cors-anywhere.herokuapp.com/TU_URL</code></li>
-            <li>O usa: <code>https://api.allorigins.win/raw?url=https://script.google.com/macros/s/AKfycbzFBrgC3sEALgimyjU-_hvthgMj7Gey8VU2fOJ74hLdyjfNkrxeRjhIN82C7gm-Wi9ULA/exec</code></li>
+            <li>Usa esta URL: <code>https://corsproxy.io/?https://script.google.com/macros/s/AKfycbzFBrgC3sEALgimyjU-_hvthgMj7Gey8VU2fOJ74hLdyjfNkrxeRjhIN82C7gm-Wi9ULA/exec</code></li>
+            <li>Ejemplo: <code>https://corsproxy.io/?https://https://script.google.com/macros/s/AKfycbzFBrgC3sEALgimyjU-_hvthgMj7Gey8VU2fOJ74hLdyjfNkrxeRjhIN82C7gm-Wi9ULA/exec</code></li>
           </ol>
         </div>
       </div>
@@ -343,14 +342,17 @@
     let url = ajustes.sheetUrl;
     if (!url) throw new Error('No hay URL configurada');
     
-    // Si la URL no tiene proxy, agregar CORS-Anywhere
-    if (!url.includes('cors-anywhere') && !url.includes('allorigins')) {
-      // Usar allorigins como proxy (más estable que cors-anywhere)
-      url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    // Si la URL ya tiene proxy, usarla directamente
+    // Si no, agregar corsproxy.io (funciona con GET y POST)
+    if (!url.includes('corsproxy.io') && !url.includes('cors-anywhere') && !url.includes('allorigins')) {
+      // Usar corsproxy.io - funciona con GET y POST
+      url = 'https://corsproxy.io/?' + encodeURIComponent(url);
     }
     
+    console.log('Llamando a:', url);
+    
     if (method === 'GET') {
-      const response = await fetch(url + '?t=' + Date.now());
+      const response = await fetch(url + '&t=' + Date.now());
       if (!response.ok) throw new Error('HTTP ' + response.status);
       return await response.json();
     } else {
@@ -414,9 +416,13 @@
   }
 
   async function sendToSheet(record, kind) {
-    if(!ajustes.sheetUrl) return;
+    if(!ajustes.sheetUrl) {
+      console.log('Sin URL, guardando local');
+      return;
+    }
     try {
-      await callSheetAPI('POST', Object.assign({ kind }, record));
+      const result = await callSheetAPI('POST', Object.assign({ kind }, record));
+      console.log('Enviado:', result);
       setTimeout(syncWithSheet, 1500);
     } catch(err) {
       console.error('Error al enviar:', err);
@@ -424,6 +430,8 @@
   }
 
   async function loadAll(){
+    console.log('Cargando datos...');
+    
     try {
       const d = localStorage.getItem('tarjetero_docentes');
       docentes = d ? JSON.parse(d) : [];
@@ -439,9 +447,13 @@
       if(a) ajustes = JSON.parse(a);
     } catch(e) {}
     
-    $('#limite-manana').value = ajustes.limiteManana || '08:00';
-    $('#limite-tarde').value = ajustes.limiteTarde || '14:00';
-    $('#input-sheet-url').value = ajustes.sheetUrl || '';
+    const limManana = $('#limite-manana');
+    const limTarde = $('#limite-tarde');
+    const sheetUrl = $('#input-sheet-url');
+    
+    if(limManana) limManana.value = ajustes.limiteManana || '08:00';
+    if(limTarde) limTarde.value = ajustes.limiteTarde || '14:00';
+    if(sheetUrl) sheetUrl.value = ajustes.sheetUrl || '';
     
     renderDocentes();
     renderRegistro();
@@ -459,7 +471,8 @@
       $$('.t-tab').forEach(t=>t.classList.remove('active'));
       $$('.t-view').forEach(v=>v.classList.remove('active'));
       tab.classList.add('active');
-      $('#view-'+tab.dataset.tab).classList.add('active');
+      const view = $('#view-'+tab.dataset.tab);
+      if(view) view.classList.add('active');
       if(tab.dataset.tab === 'docentes') renderDocentes();
       if(tab.dataset.tab === 'registro') renderRegistro();
     });
@@ -476,7 +489,8 @@
       });
     }
   }
-  setInterval(tickClock, 1000); tickClock();
+  setInterval(tickClock, 1000); 
+  tickClock();
 
   // ---------- DOCENTES ----------
   function addDocente(nombre, dni, turno){
@@ -493,34 +507,47 @@
     return true;
   }
 
-  $('#btn-add-docente').addEventListener('click', ()=>{
-    const nombre = $('#input-nombre');
-    const dni = $('#input-dni');
-    const turno = $('#input-turno');
-    const ok = addDocente(nombre.value, dni.value, turno.value);
-    if(ok){ nombre.value = ''; dni.value = ''; }
-  });
-
-  $('#btn-bulk-add').addEventListener('click', ()=>{
-    const lines = $('#input-bulk').value.split('\n').map(l=>l.trim()).filter(Boolean);
-    let added = 0;
-    lines.forEach(line=>{
-      const parts = line.split(',').map(p => p.trim());
-      const nombre = parts[0] || '';
-      const dni = parts[1] || '';
-      let turno = parts[2] || 'Mañana';
-      if(!['Mañana','Tarde','Ambos'].includes(turno)) turno = 'Mañana';
-      if(nombre && dni && addDocente(nombre, dni, turno)) added++;
+  const btnAdd = $('#btn-add-docente');
+  if(btnAdd) {
+    btnAdd.addEventListener('click', ()=>{
+      const nombre = $('#input-nombre');
+      const dni = $('#input-dni');
+      const turno = $('#input-turno');
+      const ok = addDocente(nombre ? nombre.value : '', dni ? dni.value : '', turno ? turno.value : 'Mañana');
+      if(ok){
+        if(nombre) nombre.value = '';
+        if(dni) dni.value = '';
+      }
     });
-    $('#input-bulk').value = '';
-    alert('Agregados ' + added + ' docentes.');
-  });
+  }
+
+  const btnBulk = $('#btn-bulk-add');
+  if(btnBulk) {
+    btnBulk.addEventListener('click', ()=>{
+      const bulk = $('#input-bulk');
+      if(!bulk) return;
+      
+      const lines = bulk.value.split('\n').map(l=>l.trim()).filter(Boolean);
+      let added = 0;
+      lines.forEach(line=>{
+        const parts = line.split(',').map(p => p.trim());
+        const nombre = parts[0] || '';
+        const dni = parts[1] || '';
+        let turno = parts[2] || 'Mañana';
+        if(!['Mañana','Tarde','Ambos'].includes(turno)) turno = 'Mañana';
+        if(nombre && dni && addDocente(nombre, dni, turno)) added++;
+      });
+      bulk.value = '';
+      alert('Agregados ' + added + ' docentes.');
+    });
+  }
 
   function renderDocentes(){
     const grid = $('#doc-grid');
     if(!grid) return;
     grid.innerHTML = '';
-    $('#doc-count').textContent = docentes.length;
+    const count = $('#doc-count');
+    if(count) count.textContent = docentes.length;
     
     docentes.forEach(doc=>{
       const item = document.createElement('div');
@@ -557,53 +584,69 @@
   function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
   // ---------- PRINT ----------
-  $('#btn-print').addEventListener('click', ()=>{
-    const area = document.getElementById('print-area');
-    if(!area) return;
-    area.innerHTML = '';
-    docentes.forEach(doc=>{
-      const badge = document.createElement('div');
-      badge.className = 'badge';
-      const boxId = 'print-qr-' + doc.id.replace(/[^a-zA-Z0-9]/g, '');
-      badge.innerHTML = `<div id="${boxId}"></div><div class="name">${escapeHtml(doc.nombre)}</div><div style="font-size:11px;color:#666;">${doc.turno}</div>`;
-      area.appendChild(badge);
-      try {
-        new QRCode(document.getElementById(boxId), { 
-          text: 'TARJETERO:' + doc.id, 
-          width: 110, height: 110, 
-          correctLevel: QRCode.CorrectLevel.M 
-        });
-      } catch(e) {}
+  const btnPrint = $('#btn-print');
+  if(btnPrint) {
+    btnPrint.addEventListener('click', ()=>{
+      const area = document.getElementById('print-area');
+      if(!area) return;
+      area.innerHTML = '';
+      docentes.forEach(doc=>{
+        const badge = document.createElement('div');
+        badge.className = 'badge';
+        const boxId = 'print-qr-' + doc.id.replace(/[^a-zA-Z0-9]/g, '');
+        badge.innerHTML = `<div id="${boxId}"></div><div class="name">${escapeHtml(doc.nombre)}</div><div style="font-size:11px;color:#666;">${doc.turno}</div>`;
+        area.appendChild(badge);
+        try {
+          new QRCode(document.getElementById(boxId), { 
+            text: 'TARJETERO:' + doc.id, 
+            width: 110, height: 110, 
+            correctLevel: QRCode.CorrectLevel.M 
+          });
+        } catch(e) {}
+      });
+      setTimeout(()=> window.print(), 300);
     });
-    setTimeout(()=> window.print(), 300);
-  });
+  }
 
   // ---------- SCANNER ----------
   const video = document.getElementById('scan-video');
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-  $('#btn-start-camera').addEventListener('click', startCamera);
-  $('#btn-marcar-dni').addEventListener('click', ()=>{
-    const input = $('#input-dni-manual');
-    if(!input) return;
-    const dni = input.value.trim();
-    if(!dni) { alert('Ingresa un DNI'); return; }
-    handleScan(dni);
-    input.value = '';
-  });
+  const btnCamera = $('#btn-start-camera');
+  if(btnCamera) {
+    btnCamera.addEventListener('click', startCamera);
+  }
+
+  const btnDni = $('#btn-marcar-dni');
+  if(btnDni) {
+    btnDni.addEventListener('click', ()=>{
+      const input = $('#input-dni-manual');
+      if(!input) return;
+      const dni = input.value.trim();
+      if(!dni) { alert('Ingresa un DNI'); return; }
+      handleScan(dni);
+      input.value = '';
+    });
+  }
 
   async function startCamera(){
     try{
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      video.srcObject = stream;
-      await video.play();
-      scanning = true;
-      $('#btn-start-camera').style.display = 'none';
-      $('#scan-hint').textContent = 'Acerca tu carnet QR';
-      requestAnimationFrame(scanLoop);
+      if(video) {
+        video.srcObject = stream;
+        await video.play();
+        scanning = true;
+        const btn = $('#btn-start-camera');
+        if(btn) btn.style.display = 'none';
+        const hint = $('#scan-hint');
+        if(hint) hint.textContent = 'Acerca tu carnet QR';
+        requestAnimationFrame(scanLoop);
+      }
     } catch(e){
-      $('#scan-hint').textContent = 'No se pudo activar la cámara.';
+      const hint = $('#scan-hint');
+      if(hint) hint.textContent = 'No se pudo activar la cámara.';
+      console.error('Error de cámara:', e);
     }
   }
 
@@ -681,29 +724,41 @@
   function showStamp(kind, name, type, time){
     const overlay = $('#stamp-overlay');
     const card = $('#stamp-card');
-    if(!overlay || !card) return;
+    const nameEl = $('#stamp-name');
+    const typeEl = $('#stamp-type');
+    const timeEl = $('#stamp-time');
+    
+    if(!overlay || !card || !nameEl || !typeEl || !timeEl) return;
+    
     card.className = 'stamp-card ' + kind;
-    $('#stamp-name').textContent = name;
-    $('#stamp-type').textContent = type;
-    $('#stamp-time').textContent = time;
+    nameEl.textContent = name;
+    typeEl.textContent = type;
+    timeEl.textContent = time;
     overlay.classList.add('show');
     setTimeout(()=> overlay.classList.remove('show'), 2200);
   }
 
   // ---------- REGISTRO ----------
-  $('#btn-hoy').addEventListener('click', ()=>{
-    $('#filter-fecha').value = todayStr(new Date());
-    renderRegistro();
-  });
-  $('#filter-fecha').addEventListener('input', renderRegistro);
-  $('#filter-turno').addEventListener('change', renderRegistro);
+  const btnHoy = $('#btn-hoy');
+  if(btnHoy) {
+    btnHoy.addEventListener('click', ()=>{
+      const filter = $('#filter-fecha');
+      if(filter) filter.value = todayStr(new Date());
+      renderRegistro();
+    });
+  }
+
+  const filterFecha = $('#filter-fecha');
+  const filterTurno = $('#filter-turno');
+  if(filterFecha) filterFecha.addEventListener('input', renderRegistro);
+  if(filterTurno) filterTurno.addEventListener('change', renderRegistro);
 
   function renderRegistro(){
     const container = $('#registro-table');
     if(!container) return;
     
-    const fecha = $('#filter-fecha').value.trim();
-    const turno = $('#filter-turno').value;
+    const fecha = $('#filter-fecha') ? $('#filter-fecha').value.trim() : '';
+    const turno = $('#filter-turno') ? $('#filter-turno').value : '';
     
     let rows = registros.slice().sort((a,b)=> (b.ts || 0) - (a.ts || 0));
     if(fecha) rows = rows.filter(r=>r.fecha === fecha);
@@ -732,29 +787,42 @@
   }
 
   // ---------- AJUSTES ----------
-  $('#btn-save-ajustes').addEventListener('click', async ()=>{
-    ajustes.limiteManana = $('#limite-manana').value || '08:00';
-    ajustes.limiteTarde = $('#limite-tarde').value || '14:00';
-    ajustes.sheetUrl = $('#input-sheet-url').value.trim();
-    saveAjustes();
-    
-    if(ajustes.sheetUrl) {
-      updateSheetStatus('info', 'Configuración guardada, sincronizando...');
+  const btnSave = $('#btn-save-ajustes');
+  if(btnSave) {
+    btnSave.addEventListener('click', async ()=>{
+      const limManana = $('#limite-manana');
+      const limTarde = $('#limite-tarde');
+      const sheetUrl = $('#input-sheet-url');
+      
+      if(limManana) ajustes.limiteManana = limManana.value || '08:00';
+      if(limTarde) ajustes.limiteTarde = limTarde.value || '14:00';
+      if(sheetUrl) ajustes.sheetUrl = sheetUrl.value.trim();
+      
+      saveAjustes();
+      
+      if(ajustes.sheetUrl) {
+        updateSheetStatus('info', 'Configuración guardada, sincronizando...');
+        await syncWithSheet();
+      } else {
+        updateSheetStatus('info', 'Configuración guardada — sin conexión');
+      }
+    });
+  }
+
+  const btnSync = $('#btn-sync-now');
+  if(btnSync) {
+    btnSync.addEventListener('click', async ()=>{
+      if(!ajustes.sheetUrl) {
+        updateSheetStatus('error', '⚠ Primero configura la URL');
+        return;
+      }
       await syncWithSheet();
-    } else {
-      updateSheetStatus('info', 'Configuración guardada — sin conexión');
-    }
-  });
+    });
+  }
 
-  $('#btn-sync-now').addEventListener('click', async ()=>{
-    if(!ajustes.sheetUrl) {
-      updateSheetStatus('error', '⚠ Primero configura la URL');
-      return;
-    }
-    await syncWithSheet();
-  });
-
+  // ---------- INICIALIZAR ----------
   document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM cargado, inicializando...');
     setTimeout(loadAll, 100);
   });
 
