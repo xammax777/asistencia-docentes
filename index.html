@@ -320,9 +320,9 @@
 
   let docentes = [];
   let registros = [];
-  let ajustes = { limiteManana: '08:00', limiteTarde: '14:00', sheetUrl: '' };
+  let ajustes = { limiteManana: '08:00', limiteTarde: '14:00', sheetUrl: 'https://script.google.com/macros/s/AKfycbwwu1privX5Bqr9TTazWGSzJ1SFCTofLSLgs62X2sDvDYXloW_faqWcoQKZvDzv5H7TXg/exec' };
   let lastScan = { id: null, time: 0 };
-  let stream = null;
+  let  = null;
   let scanning = false;
 
   // ---------- STORAGE (localStorage del navegador — funciona en cualquier hosting) ----------
@@ -488,7 +488,7 @@
 
   async function startCamera(){
     try{
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       video.srcObject = stream;
       await video.play();
       scanning = true;
