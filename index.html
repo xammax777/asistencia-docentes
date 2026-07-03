@@ -298,14 +298,16 @@
           <button class="btn" id="btn-save-ajustes">Guardar</button>
           <button class="btn ghost" id="btn-sync-now">Sincronizar ahora</button>
         </div>
-        <div id="sheet-status" class="sync-status info">Sin conectar</div>
+        <div id="sheet-status" class="sync-status info">Conectando...</div>
         
         <div style="margin-top:12px;padding:12px;background:#f5f0e6;border-radius:8px;font-size:12px;color:var(--ink-soft);">
-          <strong>📌 Para evitar CORS usa el proxy:</strong>
-          <ol style="margin:6px 0 0 16px;padding:0;">
-            <li>Usa esta URL: <code>https://corsproxy.io/?https://script.google.com/macros/s/AKfycbzFBrgC3sEALgimyjU-_hvthgMj7Gey8VU2fOJ74hLdyjfNkrxeRjhIN82C7gm-Wi9ULA/exec</code></li>
-            <li>Ejemplo: <code>https://corsproxy.io/?https://https://script.google.com/macros/s/AKfycbzFBrgC3sEALgimyjU-_hvthgMj7Gey8VU2fOJ74hLdyjfNkrxeRjhIN82C7gm-Wi9ULA/exec</code></li>
-          </ol>
+          <strong>✅ URL preconfigurada:</strong>
+          <code style="display:block;margin-top:4px;padding:4px;background:#fff;border-radius:4px;font-size:11px;word-break:break-all;">
+            https://script.google.com/macros/s/AKfycbwwu1privX5Bqr9TTazWGSzJ1SFCTofLSLgs62X2sDvDYXloW_faqWcoQKZvDzv5H7TXg/exec
+          </code>
+          <div style="margin-top:8px;font-size:11px;color:var(--stamp-green);">
+            ✓ Esta URL ya está configurada, no necesitas cambiarla.
+          </div>
         </div>
       </div>
     </div>
@@ -320,9 +322,20 @@
   const $ = (sel, el=root) => el.querySelector(sel);
   const $$ = (sel, el=root) => Array.from(el.querySelectorAll(sel));
 
+  // ============================================================
+  // ⚡ TU URL DE APPS SCRIPT - CONFIGURADA AQUÍ ⚡
+  // ============================================================
+  const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwwu1privX5Bqr9TTazWGSzJ1SFCTofLSLgs62X2sDvDYXloW_faqWcoQKZvDzv5H7TXg/exec';
+  
+  // ============================================================
+
   let docentes = [];
   let registros = [];
-  let ajustes = { limiteManana: '08:00', limiteTarde: '14:00', sheetUrl: '' };
+  let ajustes = { 
+    limiteManana: '08:00', 
+    limiteTarde: '14:00', 
+    sheetUrl: DEFAULT_SHEET_URL  // <-- YA VIENE CON TU URL
+  };
   let lastScan = { id: null, time: 0 };
   let stream = null;
   let scanning = false;
@@ -342,28 +355,30 @@
     let url = ajustes.sheetUrl;
     if (!url) throw new Error('No hay URL configurada');
     
-    // Si la URL ya tiene proxy, usarla directamente
-    // Si no, agregar corsproxy.io (funciona con GET y POST)
-    if (!url.includes('corsproxy.io') && !url.includes('cors-anywhere') && !url.includes('allorigins')) {
-      // Usar corsproxy.io - funciona con GET y POST
-      url = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    // Si la URL no tiene proxy, agregar thingproxy
+    if (!url.includes('thingproxy') && !url.includes('cors-anywhere') && !url.includes('allorigins')) {
+      url = 'https://thingproxy.freeboard.io/fetch/' + url;
     }
     
     console.log('Llamando a:', url);
     
-    if (method === 'GET') {
-      const response = await fetch(url + '&t=' + Date.now());
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      return await response.json();
-    } else {
-      // POST - enviar datos
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await response.json();
+    const options = {
+      method: method,
+      headers: { 'Content-Type': 'application/json' }
+    };
+    
+    if (method === 'POST' && data) {
+      options.body = JSON.stringify(data);
     }
+    
+    const response = await fetch(url + (method === 'GET' ? '?t=' + Date.now() : ''), options);
+    
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error('HTTP ' + response.status + ': ' + text.substring(0, 100));
+    }
+    
+    return await response.json();
   }
 
   async function syncWithSheet() {
@@ -372,7 +387,7 @@
       return;
     }
     
-    updateSheetStatus('info', 'Sincronizando...');
+    updateSheetStatus('info', 'Sincronizando con Google Sheet...');
     
     try {
       const data = await callSheetAPI('GET');
@@ -398,13 +413,14 @@
           renderRegistro();
         }
         
-        updateSheetStatus('success', '✓ Sincronizado correctamente');
+        updateSheetStatus('success', '✓ Conectado y sincronizado correctamente');
+        console.log('Sincronización exitosa:', { docentes: docentes.length, registros: registros.length });
       } else {
         updateSheetStatus('error', '⚠ Error: ' + (data.message || 'desconocido'));
       }
     } catch(err) {
-      console.error('Error:', err);
-      updateSheetStatus('error', '⚠ No se pudo conectar — usando datos locales');
+      console.error('Error de sincronización:', err);
+      updateSheetStatus('error', '⚠ Error al conectar: ' + err.message);
     }
   }
 
@@ -422,7 +438,7 @@
     }
     try {
       const result = await callSheetAPI('POST', Object.assign({ kind }, record));
-      console.log('Enviado:', result);
+      console.log('Enviado al Sheet:', result);
       setTimeout(syncWithSheet, 1500);
     } catch(err) {
       console.error('Error al enviar:', err);
@@ -444,8 +460,17 @@
     
     try {
       const a = localStorage.getItem('tarjetero_ajustes');
-      if(a) ajustes = JSON.parse(a);
+      if(a) {
+        const parsed = JSON.parse(a);
+        ajustes = { ...ajustes, ...parsed };
+      }
     } catch(e) {}
+    
+    // Asegurar que siempre tenga la URL por defecto si no hay otra
+    if (!ajustes.sheetUrl) {
+      ajustes.sheetUrl = DEFAULT_SHEET_URL;
+      saveAjustes();
+    }
     
     const limManana = $('#limite-manana');
     const limTarde = $('#limite-tarde');
@@ -453,16 +478,13 @@
     
     if(limManana) limManana.value = ajustes.limiteManana || '08:00';
     if(limTarde) limTarde.value = ajustes.limiteTarde || '14:00';
-    if(sheetUrl) sheetUrl.value = ajustes.sheetUrl || '';
+    if(sheetUrl) sheetUrl.value = ajustes.sheetUrl;
     
     renderDocentes();
     renderRegistro();
     
-    if(ajustes.sheetUrl) {
-      await syncWithSheet();
-    } else {
-      updateSheetStatus('info', 'Sin conectar — solo local');
-    }
+    // Sincronizar automáticamente al cargar
+    await syncWithSheet();
   }
 
   // ---------- TABS ----------
@@ -572,7 +594,7 @@
     
     $$('.del').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        if(confirm('¿Eliminar?')) {
+        if(confirm('¿Eliminar este docente?')) {
           docentes = docentes.filter(d=>d.id !== btn.dataset.id);
           saveDocentes();
           renderDocentes();
@@ -640,12 +662,12 @@
         const btn = $('#btn-start-camera');
         if(btn) btn.style.display = 'none';
         const hint = $('#scan-hint');
-        if(hint) hint.textContent = 'Acerca tu carnet QR';
+        if(hint) hint.textContent = 'Acerca tu carnet QR a la cámara';
         requestAnimationFrame(scanLoop);
       }
     } catch(e){
       const hint = $('#scan-hint');
-      if(hint) hint.textContent = 'No se pudo activar la cámara.';
+      if(hint) hint.textContent = 'No se pudo activar la cámara. Revisa permisos.';
       console.error('Error de cámara:', e);
     }
   }
@@ -765,7 +787,7 @@
     if(turno) rows = rows.filter(r=>r.turno === turno);
 
     if(rows.length === 0){
-      container.innerHTML = '<div class="empty">Sin registros.</div>';
+      container.innerHTML = '<div class="empty">Sin registros para este filtro.</div>';
       return;
     }
     
@@ -796,26 +818,17 @@
       
       if(limManana) ajustes.limiteManana = limManana.value || '08:00';
       if(limTarde) ajustes.limiteTarde = limTarde.value || '14:00';
-      if(sheetUrl) ajustes.sheetUrl = sheetUrl.value.trim();
+      if(sheetUrl) ajustes.sheetUrl = sheetUrl.value.trim() || DEFAULT_SHEET_URL;
       
       saveAjustes();
-      
-      if(ajustes.sheetUrl) {
-        updateSheetStatus('info', 'Configuración guardada, sincronizando...');
-        await syncWithSheet();
-      } else {
-        updateSheetStatus('info', 'Configuración guardada — sin conexión');
-      }
+      updateSheetStatus('info', 'Configuración guardada, sincronizando...');
+      await syncWithSheet();
     });
   }
 
   const btnSync = $('#btn-sync-now');
   if(btnSync) {
     btnSync.addEventListener('click', async ()=>{
-      if(!ajustes.sheetUrl) {
-        updateSheetStatus('error', '⚠ Primero configura la URL');
-        return;
-      }
       await syncWithSheet();
     });
   }
