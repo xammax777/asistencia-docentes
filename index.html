@@ -794,4 +794,86 @@
     });
   }
 
- 
+  const filterFecha = $('#filter-fecha');
+  const filterTurno = $('#filter-turno');
+  if(filterFecha) filterFecha.addEventListener('input', renderRegistro);
+  if(filterTurno) filterTurno.addEventListener('change', renderRegistro);
+
+  function renderRegistro(){
+    const container = $('#registro-table');
+    if(!container) return;
+    
+    const fecha = $('#filter-fecha') ? $('#filter-fecha').value.trim() : '';
+    const turno = $('#filter-turno') ? $('#filter-turno').value : '';
+    
+    let rows = registros.slice().sort((a,b)=> (b.ts || 0) - (a.ts || 0));
+    if(fecha) rows = rows.filter(r=>r.fecha === fecha);
+    if(turno) rows = rows.filter(r=>r.turno === turno);
+
+    if(rows.length === 0){
+      container.innerHTML = '<div class="empty">Sin registros para este filtro.</div>';
+      return;
+    }
+    
+    let html = '<table><thead><tr><th>Fecha</th><th>Hora</th><th>Docente</th><th>Turno</th><th>Tipo</th></tr></thead><tbody>';
+    rows.forEach(r=>{
+      html += `<tr>
+        <td>${escapeHtml(r.fecha || '')}</td>
+        <td>${escapeHtml(r.hora || '')}</td>
+        <td>${escapeHtml(r.nombre || '')}</td>
+        <td>${escapeHtml(r.turno || '')}</td>
+        <td>
+          <span class="tag ${r.tipo==='Entrada'?'entrada':'salida'}">${escapeHtml(r.tipo || '')}</span>
+          ${r.tarde ? '<span class="tag tarde">Tardanza</span>' : ''}
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  // ---------- AJUSTES ----------
+  const btnSave = $('#btn-save-ajustes');
+  if(btnSave) {
+    btnSave.addEventListener('click', async ()=>{
+      const limManana = $('#limite-manana');
+      const limTarde = $('#limite-tarde');
+      const sheetUrl = $('#input-sheet-url');
+      
+      if(limManana) ajustes.limiteManana = limManana.value || '08:00';
+      if(limTarde) ajustes.limiteTarde = limTarde.value || '14:00';
+      if(sheetUrl) ajustes.sheetUrl = sheetUrl.value.trim();
+      
+      saveAjustes();
+      
+      if(ajustes.sheetUrl) {
+        await syncWithSheet();
+        updateSheetStatus('success', '✓ Configuración guardada y sincronizada');
+      } else {
+        updateSheetStatus('info', 'Configuración guardada — sin conexión al Sheet');
+      }
+    });
+  }
+
+  const btnSync = $('#btn-sync-now');
+  if(btnSync) {
+    btnSync.addEventListener('click', async ()=>{
+      if(!ajustes.sheetUrl) {
+        updateSheetStatus('error', '⚠ Primero configura la URL del Sheet');
+        return;
+      }
+      await syncWithSheet();
+    });
+  }
+
+  // ---------- INICIALIZAR ----------
+  // Esperar a que el DOM esté listo y las librerías cargadas
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(loadAll, 100);
+  });
+
+})();
+</script>
+
+</body>
+</html>
