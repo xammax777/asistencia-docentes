@@ -180,11 +180,25 @@
     #tarjetero-root > *:not(#print-area){display:none !important;}
     #print-area{display:block !important;}
     .badge{
-      display:inline-block;width:180px;padding:14px;margin:6px;
-      border:1px dashed #999;border-radius:10px;text-align:center;
-      font-family:'Inter',sans-serif;page-break-inside:avoid;
+      width:100%;
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      font-family:'Inter',sans-serif;
+      page-break-after:always;
+      page-break-inside:avoid;
     }
-    .badge .name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;margin-top:8px;}
+    .badge:last-child{page-break-after:auto;}
+    .badge .qr-print-box svg, .badge .qr-print-box canvas, .badge .qr-print-box img{
+      width:340px !important;
+      height:340px !important;
+    }
+    .badge .name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;margin-top:22px;}
+    .badge .turno-print{font-size:16px;color:#666;margin-top:6px;}
+    .badge .dni-print{font-size:14px;color:#888;margin-top:4px;}
   }
 </style>
 </head>
@@ -507,11 +521,20 @@
       const badge = document.createElement('div');
       badge.className = 'badge';
       const boxId = 'print-qr-' + doc.id;
-      badge.innerHTML = `<div id="${boxId}"></div><div class="name">${escapeHtml(doc.nombre)}</div><div style="font-size:11px;color:#666;">${doc.turno}</div>`;
+      badge.innerHTML = `
+        <div class="qr-print-box" id="${boxId}"></div>
+        <div class="name">${escapeHtml(doc.nombre)}</div>
+        <div class="dni-print">DNI ${escapeHtml(doc.dni || doc.id)}</div>
+        <div class="turno-print">${doc.turno}</div>`;
       area.appendChild(badge);
-      new QRCode(document.getElementById(boxId), { text: 'TARJETERO:' + doc.id, width: 110, height: 110, correctLevel: QRCode.CorrectLevel.M });
+      new QRCode(document.getElementById(boxId), {
+        text: 'TARJETERO:' + doc.id,
+        width: 340,
+        height: 340,
+        correctLevel: QRCode.CorrectLevel.H
+      });
     });
-    setTimeout(()=> window.print(), 200);
+    setTimeout(()=> window.print(), 300);
   });
 
   // ---------- SCANNER ----------
