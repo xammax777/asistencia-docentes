@@ -320,7 +320,7 @@
 
   let docentes = [];
   let registros = [];
-  let ajustes = { limiteManana: '08:00', limiteTarde: '14:00', sheetUrl: '' };
+  let ajustes = { limiteManana: '08:00', limiteTarde: '14:00', sheetUrl: 'https://script.google.com/macros/s/AKfycbxQFsB9dZZZ3CzxATnRp47u8PNZoL4T-vtGGAbS0eqWcYYi384_evz12Llg5Yimlhr8dA/exec' };
   let lastScan = { id: null, time: 0 };
   let stream = null;
   let scanning = false;
@@ -357,7 +357,7 @@
       try{
         const res = await fetch(ajustes.sheetUrl + '?type=all');
         const data = await res.json();
-        if(data.docentes) docentes = data.docentes;
+        if(data.docentes) docentes = data.docentes.map(d => Object.assign({ id: d.dni }, d));
         if(data.registros) registros = data.registros;
         saveDocentes();
         saveRegistros();
