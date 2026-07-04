@@ -207,6 +207,10 @@
     <div class="t-view active" id="view-scan">
       <div class="scan-stage">
         <div class="scan-clock" id="scan-clock">--:--:--</div>
+        <div style="text-align:center;margin-bottom:10px;">
+          <button id="btn-sync" style="background:none;border:1px solid rgba(217,164,65,0.4);color:var(--gold);border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;">↻ Sincronizar con el Sheet</button>
+          <div id="sync-status-scan" style="font-size:11px;color:rgba(245,241,230,0.5);margin-top:6px;"></div>
+        </div>
         <div class="scan-viewport">
           <video id="scan-video" playsinline muted></video>
           <div class="scan-frame"></div>
@@ -321,7 +325,8 @@
   let docentes = [];
   let registros = [];
   let ajustes = { limiteManana: '08:00', limiteTarde: '14:00', sheetUrl: 'https://script.google.com/macros/s/AKfycbxQFsB9dZZZ3CzxATnRp47u8PNZoL4T-vtGGAbS0eqWcYYi384_evz12Llg5Yimlhr8dA/exec' };
-  let lastScan = { id: null, time: 0 };
+  let awaitingClear = false;
+  let lastHandledCode = null;
   let stream = null;
   let scanning = false;
 
@@ -349,23 +354,59 @@
     renderRegistro();
 
     // 2) si hay Sheet conectado, es la fuente de verdad: lo pide y reemplaza el respaldo local
-    if(ajustes.sheetUrl){
-      try{
-        const res = await fetch(ajustes.sheetUrl + '?type=all');
-        const data = await res.json();
-        if(data.docentes) docentes = data.docentes.map(d => Object.assign({}, d, { id: String(d.dni).trim(), dni: String(d.dni).trim() }));
-        if(data.registros) registros = data.registros;
-        saveDocentes();
-        saveRegistros();
-        renderDocentes();
-        renderRegistro();
-        $('#sheet-status').textContent = '✓ Sincronizado con tu Google Sheet.';
-      }catch(err){
-        console.error('No se pudo leer el Sheet, usando respaldo local:', err);
-        $('#sheet-status').textContent = '⚠ No se pudo conectar al Sheet ahora mismo — usando el respaldo local.';
-      }
+    await syncWithSheet();
+  }
+
+  // ---------- JSONP: evita el bloqueo de CORS usando una etiqueta <script> ----------
+  function jsonp(url, params){
+    return new Promise((resolve, reject)=>{
+      const cbName = 'tj_cb_' + Math.random().toString(36).slice(2);
+      const qs = Object.entries(params || {}).map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
+      const full = url + (url.includes('?') ? '&' : '?') + qs + (qs ? '&' : '') + 'callback=' + cbName;
+      const script = document.createElement('script');
+      let finished = false;
+      function cleanup(){ delete window[cbName]; script.remove(); }
+      window[cbName] = (data) => { finished = true; resolve(data); cleanup(); };
+      script.onerror = () => { if(!finished){ reject(new Error('jsonp error')); cleanup(); } };
+      script.src = full;
+      document.body.appendChild(script);
+      setTimeout(() => { if(!finished){ reject(new Error('jsonp timeout')); cleanup(); } }, 10000);
+    });
+  }
+
+  async function syncWithSheet(){
+    if(!ajustes.sheetUrl){
+      setSyncFeedback('Sin Sheet conectado.');
+      return false;
+    }
+    setSyncFeedback('Sincronizando…');
+    try{
+      const data = await jsonp(ajustes.sheetUrl, { action: 'read' });
+      if(data.docentes) docentes = data.docentes.map(d => Object.assign({}, d, { id: String(d.dni).trim(), dni: String(d.dni).trim() }));
+      if(data.registros) registros = data.registros;
+      saveDocentes();
+      saveRegistros();
+      renderDocentes();
+      renderRegistro();
+      $('#sheet-status').textContent = '✓ Sincronizado con tu Google Sheet.';
+      setSyncFeedback('✓ Sincronizado — ' + docentes.length + ' docentes cargados.');
+      return true;
+    }catch(err){
+      console.error('No se pudo leer el Sheet, usando respaldo local:', err);
+      $('#sheet-status').textContent = '⚠ No se pudo conectar al Sheet ahora mismo — usando el respaldo local.';
+      setSyncFeedback('⚠ No se pudo conectar. Revisa el internet e intenta de nuevo.');
+      return false;
     }
   }
+
+
+  function setSyncFeedback(msg){
+    const el = $('#sync-status-scan');
+    if(el) el.textContent = msg;
+  }
+
+  $('#btn-sync').addEventListener('click', ()=> syncWithSheet());
+
   function saveDocentes(){
     try{ localStorage.setItem('tarjetero_docentes', JSON.stringify(docentes)); }catch(e){ console.error(e); }
   }
@@ -509,7 +550,15 @@
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       if(code && code.data && code.data.startsWith('TARJETERO:')){
-        handleScan(code.data.replace('TARJETERO:',''));
+        const docId = code.data.replace('TARJETERO:','');
+        // Solo marca si es un QR nuevo, o si el mismo QR se retiró y volvió a aparecer
+        if(!(awaitingClear && docId === lastHandledCode)){
+          handleScan(docId);
+          awaitingClear = true;
+          lastHandledCode = docId;
+        }
+      } else {
+        awaitingClear = false; // no hay QR en cámara: listo para el siguiente marcado
       }
     }
     requestAnimationFrame(scanLoop);
@@ -518,10 +567,6 @@
   function todayStr(d){ return d.toISOString().slice(0,10); }
 
   function handleScan(docId){
-    const now = Date.now();
-    if(lastScan.id === docId && (now - lastScan.time) < 4000) return; // evita doble lectura
-    lastScan = { id: docId, time: now };
-
     const doc = docentes.find(d => d.id === String(docId).trim());
     if(!doc){
       showStamp('warn', 'QR no reconocido', 'Docente no registrado', '');
@@ -621,12 +666,13 @@
   async function sendToSheet(record, kind){
     if(!ajustes.sheetUrl) return;
     try{
-      await fetch(ajustes.sheetUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(Object.assign({ kind }, record))
+      const params = Object.assign({ action: 'write', kind: kind }, record, {
+        tarde: record.tarde ? 'SI' : 'NO'
       });
+      const result = await jsonp(ajustes.sheetUrl, params);
+      if(!result || result.status !== 'ok'){
+        console.error('El Sheet respondió con error:', result);
+      }
     }catch(err){
       console.error('No se pudo enviar al Sheet:', err);
     }
