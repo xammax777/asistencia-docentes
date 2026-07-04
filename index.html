@@ -357,7 +357,7 @@
       try{
         const res = await fetch(ajustes.sheetUrl + '?type=all');
         const data = await res.json();
-        if(data.docentes) docentes = data.docentes.map(d => Object.assign({ id: d.dni }, d));
+        if(data.docentes) docentes = data.docentes.map(d => Object.assign({}, d, { id: String(d.dni).trim(), dni: String(d.dni).trim() }));
         if(data.registros) registros = data.registros;
         saveDocentes();
         saveRegistros();
@@ -526,7 +526,7 @@
     if(lastScan.id === docId && (now - lastScan.time) < 4000) return; // evita doble lectura
     lastScan = { id: docId, time: now };
 
-    const doc = docentes.find(d => d.id === docId);
+    const doc = docentes.find(d => d.id === String(docId).trim());
     if(!doc){
       showStamp('warn', 'QR no reconocido', 'Docente no registrado', '');
       return;
