@@ -338,6 +338,7 @@
 
   let docentes = [];
   let registros = [];
+  let pendientes = [];
   let ajustes = { limiteManana: '08:00', limiteTarde: '14:00', sheetUrl: 'https://script.google.com/macros/s/AKfycbwufPr9Hqj8v9jf9FJZWLzW9fM9xJLU7-hEU4YxUfsuTurv--8ZmdOBvpHHBAo2VXLWgA/exec' };
   let awaitingClear = false;
   let lastHandledCode = null;
@@ -359,6 +360,12 @@
       const a = localStorage.getItem('tarjetero_ajustes');
       if(a) ajustes = JSON.parse(a);
     }catch(e){}
+
+    try{
+      const p = localStorage.getItem('tarjetero_pendientes');
+      pendientes = p ? JSON.parse(p) : [];
+    }catch(e){ pendientes = []; }
+    updatePendingIndicator();
 
     $('#limite-manana').value = ajustes.limiteManana;
     $('#limite-tarde').value = ajustes.limiteTarde;
@@ -388,27 +395,41 @@
     });
   }
 
-  async function syncWithSheet(){
+async function syncWithSheet(){
     if(!ajustes.sheetUrl){
       setSyncFeedback('Sin Sheet conectado.');
       return false;
     }
+
+    // 1) primero intenta reenviar lo pendiente, para no perderlo al sobreescribir con el read
+    await flushPendientes();
+
     setSyncFeedback('Sincronizando…');
     try{
       const data = await jsonp(ajustes.sheetUrl, { action: 'read' });
       if(data.docentes) docentes = data.docentes.map(d => Object.assign({}, d, { id: String(d.dni).trim(), dni: String(d.dni).trim() }));
       if(data.registros) registros = data.registros;
+
+      // 2) si algo sigue pendiente (aún sin internet), se vuelve a mostrar localmente
+      pendientes.forEach(item=>{
+        if(item.kind === 'registro') registros.push(item.record);
+        if(item.kind === 'docente' && !docentes.some(d=>d.id===item.record.id)) docentes.push(item.record);
+      });
+
       saveDocentes();
       saveRegistros();
       renderDocentes();
       renderRegistro();
       $('#sheet-status').textContent = '✓ Sincronizado con tu Google Sheet.';
-      setSyncFeedback('✓ Sincronizado — ' + docentes.length + ' docentes cargados.');
+      setSyncFeedback(pendientes.length > 0
+        ? '⏳ ' + pendientes.length + ' registro(s) aún sin enviar (sin conexión).'
+        : '✓ Sincronizado — ' + docentes.length + ' docentes cargados.');
       return true;
     }catch(err){
       console.error('No se pudo leer el Sheet, usando respaldo local:', err);
       $('#sheet-status').textContent = '⚠ No se pudo conectar al Sheet ahora mismo — usando el respaldo local.';
       setSyncFeedback('⚠ No se pudo conectar. Revisa el internet e intenta de nuevo.');
+      updatePendingIndicator();
       return false;
     }
   }
@@ -429,6 +450,9 @@
   }
   function saveAjustes(){
     try{ localStorage.setItem('tarjetero_ajustes', JSON.stringify(ajustes)); }catch(e){ console.error(e); }
+  }
+  function savePendientes(){
+    try{ localStorage.setItem('tarjetero_pendientes', JSON.stringify(pendientes)); }catch(e){ console.error(e); }
   }
 
   // ---------- TABS ----------
@@ -589,7 +613,7 @@
 
   function todayStr(d){ return d.toISOString().slice(0,10); }
 
-  function handleScan(docId){
+ function handleScan(docId){
     const doc = docentes.find(d => d.id === String(docId).trim());
     if(!doc){
       showStamp('warn', 'QR no reconocido', 'Docente no registrado', '');
@@ -597,15 +621,25 @@
     }
     const nowDate = new Date();
     const today = todayStr(nowDate);
-    const todays = registros.filter(r => r.docenteId === docId && r.fecha === today);
-
-    if(todays.length >= 2){
-      showStamp('warn', doc.nombre, 'Ya registrado hoy', formatTime(nowDate));
-      return;
-    }
-    const tipo = todays.length === 0 ? 'Entrada' : 'Salida';
     const hourDec = nowDate.getHours() + nowDate.getMinutes()/60;
     const turnoHoy = hourDec < 13 ? 'Mañana' : 'Tarde';
+
+    // Docentes "Ambos": se cuenta por turno (hasta 2 marcas en Mañana + 2 en Tarde = 4 al día)
+    // Docentes de un solo turno: se cuenta el día completo (máximo 2 marcas en total)
+    let todaysCount;
+    if(doc.turno === 'Ambos'){
+      todaysCount = registros.filter(r => r.docenteId === docId && r.fecha === today && r.turno === turnoHoy);
+    } else {
+      todaysCount = registros.filter(r => r.docenteId === docId && r.fecha === today);
+    }
+
+    if(todaysCount.length >= 2){
+      const msg = doc.turno === 'Ambos' ? ('Ya registrado en turno ' + turnoHoy) : 'Ya registrado hoy';
+      showStamp('warn', doc.nombre, msg, formatTime(nowDate));
+      return;
+    }
+
+    const tipo = todaysCount.length === 0 ? 'Entrada' : 'Salida';
     let tarde = false;
     if(tipo === 'Entrada'){
       const limite = turnoHoy === 'Mañana' ? ajustes.limiteManana : ajustes.limiteTarde;
@@ -688,6 +722,16 @@
 
   async function sendToSheet(record, kind){
     if(!ajustes.sheetUrl) return;
+    const ok = await trySendOne(record, kind);
+    if(!ok){
+      // sin internet o el Sheet no respondió: se guarda para reintentar después
+      pendientes.push({ record, kind, addedAt: Date.now() });
+      savePendientes();
+      updatePendingIndicator();
+    }
+  }
+
+  async function trySendOne(record, kind){
     try{
       const params = Object.assign({ action: 'write', kind: kind }, record, {
         tarde: record.tarde ? 'SI' : 'NO'
@@ -695,11 +739,44 @@
       const result = await jsonp(ajustes.sheetUrl, params);
       if(!result || result.status !== 'ok'){
         console.error('El Sheet respondió con error:', result);
+        return false;
       }
+      return true;
     }catch(err){
-      console.error('No se pudo enviar al Sheet:', err);
+      console.error('No se pudo enviar al Sheet (sin conexión o Sheet no disponible):', err);
+      return false;
     }
   }
+
+  async function flushPendientes(){
+    if(!ajustes.sheetUrl || pendientes.length === 0) return;
+    setSyncFeedback('Reenviando ' + pendientes.length + ' registro(s) pendientes…');
+    const stillPending = [];
+    for(const item of pendientes){
+      const ok = await trySendOne(item.record, item.kind);
+      if(!ok) stillPending.push(item);
+    }
+    pendientes = stillPending;
+    savePendientes();
+    updatePendingIndicator();
+  }
+
+  function updatePendingIndicator(){
+    const el = $('#sync-status-scan');
+    if(!el) return;
+    if(pendientes.length > 0){
+      el.textContent = '⏳ ' + pendientes.length + ' registro(s) sin enviar al Sheet (sin conexión). Se reintentará automáticamente.';
+    }
+  }
+
+window.addEventListener('online', ()=>{
+    console.log('Conexión recuperada, reintentando enviar pendientes...');
+    flushPendientes();
+  });
+
+  setInterval(()=>{
+    if(pendientes.length > 0) flushPendientes();
+  }, 30000); // reintenta cada 30 segundos si hay pendientes sin conexión
 
   loadAll();
 })();
