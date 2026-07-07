@@ -641,7 +641,7 @@ async function syncWithSheet(){
 
     const tipo = todaysCount.length === 0 ? 'Entrada' : 'Salida';
     let tarde = false;
-    if(tipo === 'Entrada'){
+    if(tipo === 'Entrada' && doc.turno !== 'Ambos'){
       const limite = turnoHoy === 'Mañana' ? ajustes.limiteManana : ajustes.limiteTarde;
       const [lh, lm] = limite.split(':').map(Number);
       tarde = hourDec > (lh + lm/60);
