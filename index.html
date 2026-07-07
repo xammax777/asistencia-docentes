@@ -241,7 +241,7 @@
         <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(245,241,230,0.15);text-align:center;">
           <div style="font-size:12px;color:rgba(245,241,230,0.55);margin-bottom:8px;">¿Perdiste tu QR? Marca con tu DNI</div>
           <div class="row" style="justify-content:center;">
-            <input type="text" id="input-dni-manual" placeholder="Número de DNI" style="width:150px;text-align:center;">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" id="input-dni-manual" placeholder="Número de DNI" style="width:150px;text-align:center;">
             <button class="btn" id="btn-marcar-dni" style="background:var(--gold);color:var(--chalk-green-dark);">Marcar</button>
           </div>
         </div>
