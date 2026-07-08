@@ -527,10 +527,15 @@ async function syncWithSheet(){
       new QRCode(document.getElementById(qrBoxId), { text: 'TARJETERO:' + doc.id, width: 96, height: 96, correctLevel: QRCode.CorrectLevel.M });
     });
     $$('.del').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        docentes = docentes.filter(d=>d.id !== btn.dataset.id);
+      btn.addEventListener('click', async ()=>{
+        const id = btn.dataset.id;
+        docentes = docentes.filter(d=>d.id !== id);
         saveDocentes();
         renderDocentes();
+        if(ajustes.sheetUrl){
+          try{ await jsonp(ajustes.sheetUrl, { action: 'delete', dni: id }); }
+          catch(e){ console.error('No se pudo eliminar del Sheet:', e); }
+        }
       });
     });
   }
