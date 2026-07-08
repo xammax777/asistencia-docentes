@@ -611,7 +611,12 @@ async function syncWithSheet(){
     requestAnimationFrame(scanLoop);
   }
 
-  function todayStr(d){ return d.toISOString().slice(0,10); }
+function todayStr(d){
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
 
  function handleScan(docId){
     const doc = docentes.find(d => d.id === String(docId).trim());
