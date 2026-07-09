@@ -573,8 +573,19 @@ async function syncWithSheet(){
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-  $('#btn-start-camera').addEventListener('click', startCamera);
+  $('#btn-start-camera').addEventListener('click', ()=>{
+    unlockAudio();
+    startCamera();
+  });
+
+  function unlockAudio(){
+    const ctx = getAudioCtx();
+    if(ctx && ctx.state === 'suspended'){
+      ctx.resume();
+    }
+  }
   $('#btn-marcar-dni').addEventListener('click', ()=>{
+    unlockAudio();
     const dni = $('#input-dni-manual').value.trim();
     if(!dni) return;
     handleScan(dni);
@@ -687,6 +698,7 @@ function todayStr(d){
   function playTone(freq, durationMs, delayMs, volume){
     const ctx = getAudioCtx();
     if(!ctx) return;
+    if(ctx.state === 'suspended'){ ctx.resume(); }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
