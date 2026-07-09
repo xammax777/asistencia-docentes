@@ -696,7 +696,7 @@ function todayStr(d){
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.value = freq;
-    gain.gain.value = volume || 0.25;
+    gain.gain.value = volume || 0.50;
     osc.connect(gain);
     gain.connect(ctx.destination);
     const startTime = ctx.currentTime + (delayMs || 0) / 1000;
