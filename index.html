@@ -637,27 +637,22 @@ function todayStr(d){
       return; // ignorado silenciosamente: es la misma tarjeta parpadeando al retirarse
     }
     recentScans[docId] = now;
-    const nowDate = new Date();
+   const nowDate = new Date();
     const today = todayStr(nowDate);
     const hourDec = nowDate.getHours() + nowDate.getMinutes()/60;
-    const turnoHoy = hourDec < 13 ? 'Mañana' : 'Tarde';
+    const turnoHoy = hourDec < 13 ? 'Mañana' : 'Tarde'; // solo informativo, no afecta el conteo
 
-    // Docentes "Ambos": se cuenta por turno (hasta 2 marcas en Mañana + 2 en Tarde = 4 al día)
-    // Docentes de un solo turno: se cuenta el día completo (máximo 2 marcas en total)
-    let todaysCount;
-    if(doc.turno === 'Ambos'){
-      todaysCount = registros.filter(r => r.docenteId === docId && r.fecha === today && r.turno === turnoHoy);
-    } else {
-      todaysCount = registros.filter(r => r.docenteId === docId && r.fecha === today);
-    }
+    // Límite de marcas al día: 4 para "Ambos", 2 para turno único — sin dividir por hora
+    const maxMarcas = doc.turno === 'Ambos' ? 4 : 2;
+    const todaysCount = registros.filter(r => r.docenteId === docId && r.fecha === today);
 
-    if(todaysCount.length >= 2){
-      const msg = doc.turno === 'Ambos' ? ('Ya registrado en turno ' + turnoHoy) : 'Ya registrado hoy';
-      showStamp('warn', doc.nombre, msg, formatTime(nowDate));
+    if(todaysCount.length >= maxMarcas){
+      showStamp('warn', doc.nombre, 'Ya registrado hoy', formatTime(nowDate));
       return;
     }
 
-    const tipo = todaysCount.length === 0 ? 'Entrada' : 'Salida';
+    // Par (0,2,4...) = Entrada, Impar (1,3...) = Salida
+    const tipo = todaysCount.length % 2 === 0 ? 'Entrada' : 'Salida';
     let tarde = false;
     if(tipo === 'Entrada' && doc.turno !== 'Ambos'){
       const limite = turnoHoy === 'Mañana' ? ajustes.limiteManana : ajustes.limiteTarde;
